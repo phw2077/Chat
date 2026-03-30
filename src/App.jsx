@@ -2,13 +2,35 @@ import React, { useState, useRef, useEffect } from 'react';
 import './App.css';
 
 function App() {
+  // --- 在这里填入您的默认设置 ---
+  // 注意：如果您的 GitHub 仓库是公开的，请不要在这里填写真实的 Key，否则会被人盗用！
+  const DEFAULT_API_KEY = ''; // 例如: 'sk-xxxxxxxxxxxx'
+  const DEFAULT_API_URL = ''; // 例如: 'https://api.openai.com/v1/chat/completions'
+  // -----------------------------
+
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [apiKey, setApiKey] = useState('');
-  const [apiUrl, setApiUrl] = useState('');
+  
+  // 从 localStorage -> 环境变量 -> 硬编码默认值 加载初始值
+  const [apiKey, setApiKey] = useState(() => {
+    return localStorage.getItem('ai_chat_api_key') || import.meta.env.VITE_API_KEY || DEFAULT_API_KEY || '';
+  });
+  const [apiUrl, setApiUrl] = useState(() => {
+    return localStorage.getItem('ai_chat_api_url') || import.meta.env.VITE_API_URL || DEFAULT_API_URL || '';
+  });
+
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef(null);
+
+  // 当 apiKey 或 apiUrl 改变时，保存到 localStorage
+  useEffect(() => {
+    localStorage.setItem('ai_chat_api_key', apiKey);
+  }, [apiKey]);
+
+  useEffect(() => {
+    localStorage.setItem('ai_chat_api_url', apiUrl);
+  }, [apiUrl]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
