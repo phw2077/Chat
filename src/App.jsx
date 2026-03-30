@@ -107,42 +107,43 @@ function App() {
   return (
     <div className="app">
       <header className="header">
-        <h1>AI Chat</h1>
+        <h1>AI Assistant</h1>
         <button 
           className="settings-btn" 
           onClick={() => setShowSettings(!showSettings)}
+          title="API 设置"
         >
-          ⚙️
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg>
         </button>
       </header>
 
       {showSettings && (
         <div className="settings">
           <div className="settings-content">
-            <h2>API设置</h2>
+            <h2>API 设置</h2>
             <div className="setting-item">
-              <label>API Key:</label>
+              <label>API Key</label>
               <input 
                 type="password" 
                 value={apiKey} 
                 onChange={(e) => setApiKey(e.target.value)}
-                placeholder="请输入API Key"
+                placeholder="sk-..."
               />
             </div>
             <div className="setting-item">
-              <label>API URL:</label>
+              <label>API URL</label>
               <input 
                 type="text" 
                 value={apiUrl} 
                 onChange={(e) => setApiUrl(e.target.value)}
-                placeholder="请输入API URL"
+                placeholder="https://api..."
               />
             </div>
             <button 
               className="save-btn" 
               onClick={() => setShowSettings(false)}
             >
-              保存
+              完成
             </button>
           </div>
         </div>
@@ -150,6 +151,12 @@ function App() {
 
       <div className="chat-container">
         <div className="messages">
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', marginTop: '4rem', color: 'var(--text-muted)' }}>
+              <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>✨</div>
+              <p>有什么我可以帮您的吗？</p>
+            </div>
+          )}
           {messages.map(message => (
             <div 
               key={message.id} 
@@ -179,16 +186,20 @@ function App() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="输入您的问题..."
+            placeholder="问我任何问题..."
             className="input"
             rows={1}
+            onInput={(e) => {
+              e.target.style.height = 'auto';
+              e.target.style.height = e.target.scrollHeight + 'px';
+            }}
           />
           <button 
             className="send-btn" 
             onClick={handleSend}
-            disabled={isLoading}
+            disabled={isLoading || !input.trim()}
           >
-            发送
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
           </button>
         </div>
       </div>
