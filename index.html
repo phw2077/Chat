@@ -242,8 +242,9 @@
   <div id="root"></div>
   <script type="text/babel">
     function App() {
-      const DEFAULT_API_KEY = ''; // 填入您的 API Key
-      const DEFAULT_API_URL = ''; // 填入您的 API URL
+      const DEFAULT_API_KEY = 'sk-1016ea9c540446a094868468f93d7047';
+      const DEFAULT_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
+      const DEFAULT_MODEL = 'qwen-max';
 
       const [messages, setMessages] = React.useState([]);
       const [input, setInput] = React.useState('');
@@ -279,6 +280,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
+              model: DEFAULT_MODEL,
               messages: [...messages, userMessage].map(m => ({
                 role: m.sender === 'user' ? 'user' : 'assistant',
                 content: m.text
