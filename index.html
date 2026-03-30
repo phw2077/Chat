@@ -3,309 +3,238 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Chat</title>
-  <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+  <title>AI Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
     :root {
-      font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-      line-height: 1.5;
-      font-weight: 400;
-      color-scheme: light dark;
-      color: rgba(255, 255, 255, 0.87);
-      background-color: #242424;
-      font-synthesis: none;
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
+      --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --glass-bg: rgba(255, 255, 255, 0.75);
+      --glass-border: rgba(255, 255, 255, 0.4);
+      --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
     }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
     body {
-      min-width: 320px;
+      font-family: var(--font-main);
+      background: radial-gradient(circle at top right, #eef2ff, #f8fafc);
       min-height: 100vh;
+      color: var(--text-main);
     }
-
-    #root {
-      width: 100%;
-      min-height: 100vh;
-    }
+    #root { width: 100%; min-height: 100vh; }
 
     .app {
       display: flex;
       flex-direction: column;
       height: 100vh;
       width: 100%;
-      background-color: #f5f5f5;
     }
 
+    /* Header */
     .header {
-      background-color: #4285f4;
-      color: white;
-      padding: 1rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--glass-border);
+      padding: 1rem 1.5rem;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
     }
-
     .header h1 {
-      font-size: 1.5rem;
-      font-weight: 500;
+      font-size: 1.25rem;
+      font-weight: 600;
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
-
     .settings-btn {
-      background: none;
-      border: none;
-      color: white;
-      font-size: 1.2rem;
+      background: white;
+      border: 1px solid #e2e8f0;
+      color: var(--text-muted);
+      font-size: 1.25rem;
       cursor: pointer;
-      padding: 0.5rem;
-      border-radius: 50%;
-      transition: background-color 0.2s;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      transition: all 0.2s;
+      box-shadow: var(--shadow-sm);
     }
-
     .settings-btn:hover {
-      background-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+      color: var(--primary);
+      border-color: var(--primary);
     }
 
+    /* Settings Modal */
     .settings {
       position: absolute;
-      top: 60px;
-      right: 20px;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      top: 70px;
+      right: 1.5rem;
+      background: white;
+      border-radius: 16px;
+      box-shadow: var(--shadow-lg);
       padding: 1.5rem;
       z-index: 1000;
-      width: 300px;
+      width: 320px;
+      border: 1px solid #f1f5f9;
+      animation: slideDown 0.25s ease-out;
     }
-
-    .settings h2 {
-      font-size: 1.2rem;
-      margin-bottom: 1rem;
-      color: #333;
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-
-    .setting-item {
-      margin-bottom: 1rem;
-    }
-
-    .setting-item label {
-      display: block;
-      margin-bottom: 0.5rem;
-      font-size: 0.9rem;
-      color: #555;
-    }
-
+    .settings h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text-main); }
+    .setting-item { margin-bottom: 1rem; }
+    .setting-item label { display: block; font-weight: 500; color: var(--text-main); margin-bottom: 0.4rem; font-size: 0.875rem; }
     .setting-item input {
-      width: 100%;
-      padding: 0.75rem;
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      font-size: 1rem;
+      width: 100%; padding: 0.75rem;
+      background: #f8fafc; border: 1px solid #e2e8f0;
+      border-radius: 10px; font-size: 0.95rem;
+      font-family: var(--font-main);
+      transition: all 0.2s;
     }
-
+    .setting-item input:focus {
+      outline: none; border-color: var(--primary);
+      background: white; box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+    }
     .save-btn {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 0.75rem 1.5rem;
-      border-radius: 4px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      margin-top: 1rem;
-      width: 100%;
+      background: var(--primary); color: white;
+      border: none; padding: 0.75rem; border-radius: 10px;
+      font-size: 0.95rem; font-weight: 500;
+      font-family: var(--font-main);
+      cursor: pointer; width: 100%;
+      transition: background 0.2s;
+      margin-top: 0.5rem;
     }
+    .save-btn:hover { background: var(--primary-hover); }
 
-    .save-btn:hover {
-      background-color: #3367d6;
-    }
-
+    /* Chat Area */
     .chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 1rem;
-      overflow: hidden;
+      flex: 1; display: flex; flex-direction: column;
+      padding: 1rem; margin: 0 auto;
+      width: 100%; max-width: 860px;
+      height: calc(100vh - 66px);
     }
-
     .messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 1rem;
-      margin-bottom: 1rem;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      flex: 1; overflow-y: auto;
+      padding: 1rem 0.5rem;
+      display: flex; flex-direction: column;
+      gap: 1.25rem;
+      scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent;
     }
+    .messages::-webkit-scrollbar { width: 5px; }
+    .messages::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
 
+    /* Empty state */
+    .empty-state {
+      text-align: center; margin: auto;
+      padding: 3rem 1rem; color: var(--text-muted);
+    }
+    .empty-state .icon { font-size: 3rem; margin-bottom: 1rem; }
+    .empty-state p { font-size: 1rem; }
+
+    /* Messages */
     .message {
-      margin-bottom: 1rem;
-      display: flex;
-      max-width: 80%;
+      max-width: 82%; display: flex; flex-direction: column;
+      animation: fadeUp 0.3s cubic-bezier(.175,.885,.32,1.1) forwards;
     }
-
-    .message.user {
-      align-self: flex-end;
-      flex-direction: row-reverse;
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px) scale(0.96); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
     }
-
-    .message.assistant {
-      align-self: flex-start;
-    }
-
+    .message.user { align-self: flex-end; }
+    .message.assistant { align-self: flex-start; }
     .message-content {
-      padding: 1rem;
+      padding: 0.85rem 1.1rem;
       border-radius: 18px;
-      position: relative;
+      font-size: 0.95rem; line-height: 1.65;
+      box-shadow: var(--shadow-sm);
     }
-
+    .message-text { white-space: pre-wrap; }
     .message.user .message-content {
-      background-color: #4285f4;
-      color: white;
-      border-bottom-right-radius: 4px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white; border-bottom-right-radius: 4px;
     }
-
     .message.assistant .message-content {
-      background-color: #e9e9eb;
-      color: #333;
-      border-bottom-left-radius: 4px;
+      background: white; color: var(--text-main);
+      border-bottom-left-radius: 4px; border: 1px solid #f1f5f9;
     }
 
-    .message-text {
-      white-space: pre-wrap;
-      line-height: 1.4;
-    }
-
-    .loading {
-      display: flex;
-      gap: 0.3rem;
-      align-items: center;
-    }
-
+    /* Loading dots */
+    .loading { display: flex; gap: 0.4rem; padding: 0.3rem 0.5rem; }
     .loading-dot {
-      width: 8px;
-      height: 8px;
-      background-color: #666;
+      width: 6px; height: 6px;
+      background: var(--primary); opacity: 0.6;
       border-radius: 50%;
-      animation: loading 1.4s infinite ease-in-out both;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
+    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.8); opacity: 0.3; }
+      50%       { transform: scale(1.2); opacity: 1; }
     }
 
-    .loading-dot:nth-child(1) {
-      animation-delay: -0.32s;
-    }
-
-    .loading-dot:nth-child(2) {
-      animation-delay: -0.16s;
-    }
-
-    @keyframes loading {
-      0%, 80%, 100% {
-        transform: scale(0);
-      } 40% {
-        transform: scale(1);
-      }
-    }
-
+    /* Input Bar */
     .input-container {
-      display: flex;
-      gap: 1rem;
-      padding: 1rem;
-      background-color: white;
-      border-radius: 8px;
-      box-shadow: 0 -2px 4px rgba(0, 0, 0, 0.05);
+      display: flex; gap: 0.75rem;
+      padding: 0.875rem 1rem;
+      background: var(--glass-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      margin-bottom: 1.25rem;
+      box-shadow: var(--shadow-lg);
+      align-items: flex-end;
+      transition: transform 0.2s;
     }
-
+    .input-container:focus-within { transform: translateY(-2px); }
     .input {
-      flex: 1;
-      padding: 1rem;
-      border: 1px solid #ddd;
-      border-radius: 24px;
-      font-size: 1rem;
-      resize: none;
-      max-height: 120px;
-      overflow-y: auto;
+      flex: 1; background: transparent; border: none;
+      padding: 0.5rem 0.25rem;
+      font-size: 1rem; font-family: var(--font-main);
+      color: var(--text-main); resize: none;
+      max-height: 150px; min-height: 24px; line-height: 1.5;
     }
-
-    .input:focus {
-      outline: none;
-      border-color: #4285f4;
-      box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
-    }
-
+    .input:focus { outline: none; }
+    .input::placeholder { color: #94a3b8; }
     .send-btn {
-      background-color: #4285f4;
-      color: white;
-      border: none;
-      padding: 0 1.5rem;
-      border-radius: 24px;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: background-color 0.2s;
-      align-self: flex-end;
-      height: 48px;
+      background: var(--primary); color: white;
+      border: none; width: 44px; height: 44px;
+      border-radius: 12px; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.2s;
+      box-shadow: 0 4px 10px rgba(99,102,241,0.3);
+      flex-shrink: 0;
     }
+    .send-btn:hover:not(:disabled) { background: var(--primary-hover); transform: scale(1.05); }
+    .send-btn:disabled { background: #e2e8f0; box-shadow: none; cursor: not-allowed; }
 
-    .send-btn:hover:not(:disabled) {
-      background-color: #3367d6;
-    }
-
-    .send-btn:disabled {
-      background-color: #a8c7fa;
-      cursor: not-allowed;
-    }
-
-    @media (max-width: 768px) {
-      .chat-container {
-        padding: 0.5rem;
-      }
-
-      .messages {
-        padding: 0.5rem;
-      }
-
-      .message {
-        max-width: 90%;
-      }
-
-      .input-container {
-        padding: 0.5rem;
-      }
-
-      .input {
-        padding: 0.75rem;
-      }
-
-      .send-btn {
-        padding: 0 1.25rem;
-      }
-    }
-
-    /* 滚动条样式 */
-    .messages::-webkit-scrollbar {
-      width: 6px;
-    }
-
-    .messages::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 3px;
-    }
-
-    .messages::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 3px;
-    }
-
-    .messages::-webkit-scrollbar-thumb:hover {
-      background: #a8a8a8;
+    @media (max-width: 640px) {
+      .chat-container { padding: 0.75rem; }
+      .message { max-width: 90%; }
+      .input-container { margin-bottom: 0.875rem; border-radius: 16px; }
+      .settings { width: calc(100% - 3rem); }
     }
   </style>
 </head>
@@ -313,139 +242,116 @@
   <div id="root"></div>
   <script type="text/babel">
     function App() {
+      const DEFAULT_API_KEY = ''; // 填入您的 API Key
+      const DEFAULT_API_URL = ''; // 填入您的 API URL
+
       const [messages, setMessages] = React.useState([]);
       const [input, setInput] = React.useState('');
       const [isLoading, setIsLoading] = React.useState(false);
-      const [apiKey, setApiKey] = React.useState('');
-      const [apiUrl, setApiUrl] = React.useState('');
+      const [apiKey, setApiKey] = React.useState(
+        () => localStorage.getItem('ai_chat_api_key') || DEFAULT_API_KEY
+      );
+      const [apiUrl, setApiUrl] = React.useState(
+        () => localStorage.getItem('ai_chat_api_url') || DEFAULT_API_URL
+      );
       const [showSettings, setShowSettings] = React.useState(false);
       const messagesEndRef = React.useRef(null);
 
-      const scrollToBottom = () => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-      };
-
       React.useEffect(() => {
-        scrollToBottom();
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
       }, [messages]);
+
+      React.useEffect(() => { localStorage.setItem('ai_chat_api_key', apiKey); }, [apiKey]);
+      React.useEffect(() => { localStorage.setItem('ai_chat_api_url', apiUrl); }, [apiUrl]);
 
       const handleSend = async () => {
         if (!input.trim()) return;
         if (!apiKey || !apiUrl) {
-          alert('请先设置API Key和API URL');
+          alert('请先点击右上角⚙️设置 API Key 和 API URL');
           return;
         }
-
-        const userMessage = {
-          id: Date.now(),
-          text: input,
-          sender: 'user'
-        };
-
+        const userMessage = { id: Date.now(), text: input, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
-
         try {
           const response = await fetch(apiUrl, {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
             body: JSON.stringify({
-              messages: [...messages, userMessage].map(msg => ({
-                role: msg.sender === 'user' ? 'user' : 'assistant',
-                content: msg.text
+              messages: [...messages, userMessage].map(m => ({
+                role: m.sender === 'user' ? 'user' : 'assistant',
+                content: m.text
               }))
             })
           });
-
-          if (!response.ok) {
-            throw new Error('API请求失败');
-          }
-
+          if (!response.ok) throw new Error('请求失败');
           const data = await response.json();
-          const assistantMessage = {
+          setMessages(prev => [...prev, {
             id: Date.now() + 1,
-            text: data.choices[0]?.message?.content || '抱歉，我无法理解您的问题',
+            text: data.choices[0]?.message?.content || '抱歉，无法获取回复',
             sender: 'assistant'
-          };
-
-          setMessages(prev => [...prev, assistantMessage]);
-        } catch (error) {
-          console.error('Error:', error);
-          const errorMessage = {
-            id: Date.now() + 1,
-            text: '抱歉，请求失败，请检查API设置',
-            sender: 'assistant'
-          };
-          setMessages(prev => [...prev, errorMessage]);
+          }]);
+        } catch (err) {
+          setMessages(prev => [...prev, { id: Date.now() + 1, text: '请求失败，请检查 API 设置', sender: 'assistant' }]);
         } finally {
           setIsLoading(false);
         }
       };
 
       const handleKeyPress = (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-          e.preventDefault();
-          handleSend();
-        }
+        if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
       };
+
+      const GearIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.72v-.51a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+      );
+
+      const SendIcon = () => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      );
 
       return (
         <div className="app">
           <header className="header">
-            <h1>AI Chat</h1>
-            <button 
-              className="settings-btn" 
-              onClick={() => setShowSettings(!showSettings)}
-            >
-              ⚙️
+            <h1>AI Assistant</h1>
+            <button className="settings-btn" onClick={() => setShowSettings(!showSettings)} title="API 设置">
+              <GearIcon />
             </button>
           </header>
 
           {showSettings && (
             <div className="settings">
-              <div className="settings-content">
-                <h2>API设置</h2>
-                <div className="setting-item">
-                  <label>API Key:</label>
-                  <input 
-                    type="password" 
-                    value={apiKey} 
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="请输入API Key"
-                  />
-                </div>
-                <div className="setting-item">
-                  <label>API URL:</label>
-                  <input 
-                    type="text" 
-                    value={apiUrl} 
-                    onChange={(e) => setApiUrl(e.target.value)}
-                    placeholder="请输入API URL"
-                  />
-                </div>
-                <button 
-                  className="save-btn" 
-                  onClick={() => setShowSettings(false)}
-                >
-                  保存
-                </button>
+              <h2>API 设置</h2>
+              <div className="setting-item">
+                <label>API Key</label>
+                <input type="password" value={apiKey} onChange={e => setApiKey(e.target.value)} placeholder="sk-..." />
               </div>
+              <div className="setting-item">
+                <label>API URL</label>
+                <input type="text" value={apiUrl} onChange={e => setApiUrl(e.target.value)} placeholder="https://api.openai.com/v1/chat/completions" />
+              </div>
+              <button className="save-btn" onClick={() => setShowSettings(false)}>完成</button>
             </div>
           )}
 
           <div className="chat-container">
             <div className="messages">
-              {messages.map(message => (
-                <div 
-                  key={message.id} 
-                  className={`message ${message.sender}`}
-                >
+              {messages.length === 0 && (
+                <div className="empty-state">
+                  <div className="icon">✨</div>
+                  <p>有什么我可以帮您的吗？</p>
+                </div>
+              )}
+              {messages.map(msg => (
+                <div key={msg.id} className={`message ${msg.sender}`}>
                   <div className="message-content">
-                    <div className="message-text">{message.text}</div>
+                    <div className="message-text">{msg.text}</div>
                   </div>
                 </div>
               ))}
@@ -466,18 +372,14 @@
             <div className="input-container">
               <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={e => { setInput(e.target.value); e.target.style.height='auto'; e.target.style.height=e.target.scrollHeight+'px'; }}
                 onKeyPress={handleKeyPress}
-                placeholder="输入您的问题..."
+                placeholder="问我任何问题..."
                 className="input"
                 rows={1}
               />
-              <button 
-                className="send-btn" 
-                onClick={handleSend}
-                disabled={isLoading}
-              >
-                发送
+              <button className="send-btn" onClick={handleSend} disabled={isLoading || !input.trim()}>
+                <SendIcon />
               </button>
             </div>
           </div>
