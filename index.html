@@ -318,6 +318,16 @@
       });
 
       const [sidebarOpen, setSidebarOpen] = React.useState(false);
+      const [input, setInput] = React.useState('');
+      const [isLoading, setIsLoading] = React.useState(false);
+      const [apiKey, setApiKey] = React.useState(
+        () => localStorage.getItem('ai_chat_api_key') || DEFAULT_API_KEY
+      );
+      const [apiUrl, setApiUrl] = React.useState(
+        () => localStorage.getItem('ai_chat_api_url') || DEFAULT_API_URL
+      );
+      const [showSettings, setShowSettings] = React.useState(false);
+      const messagesEndRef = React.useRef(null);
 
       const currentSession = sessions.find(s => s.id === currentSessionId);
       const messages = currentSession ? currentSession.messages : [];
