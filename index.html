@@ -10,6 +10,7 @@
   <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
     :root {
       --font-main: "Google Sans", "Helvetica Neue", sans-serif;
@@ -225,27 +226,50 @@
     .message-content { padding: 0.75rem 1.25rem; border-radius: 24px; }
     .message-text { white-space: pre-wrap; word-break: break-word; }
     
-    .message.user .message-content {
-      background: var(--message-user-bg);
-      color: var(--message-user-text);
-      max-width: 85%;
+    /* Markdown Styles */
+    .message-text p { margin-bottom: 0.75rem; }
+    .message-text p:last-child { margin-bottom: 0; }
+    .message-text code {
+      background: rgba(0,0,0,0.05);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-family: SFMono-Regular, Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: 0.875em;
     }
-    .message.assistant .message-content {
+    .message-text pre {
+      background: #f6f8fa;
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin: 1rem 0;
+      border: 1px solid var(--border-color);
+    }
+    .message-text pre code {
       background: transparent;
-      color: var(--message-bot-text);
-      padding-left: 0; padding-right: 0;
+      padding: 0;
+      font-size: 0.9rem;
+      color: #24292e;
     }
-
-    /* Loading dots */
-    .loading { display: flex; gap: 0.4rem; padding: 0.5rem 0; }
-    .loading-dot {
-      width: 6px; height: 6px;
-      background: #1a73e8; border-radius: 50%;
-      animation: pulse 1.5s infinite ease-in-out;
+    .message-text ul, .message-text ol {
+      margin-left: 1.5rem;
+      margin-bottom: 0.75rem;
     }
-    .loading-dot:nth-child(2) { animation-delay: 0.2s; }
-    .loading-dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes pulse { 0%, 100% { transform: scale(0.8); opacity: 0.4; } 50% { transform: scale(1.2); opacity: 1; } }
+    .message-text blockquote {
+      border-left: 4px solid #dfe2e5;
+      padding-left: 1rem;
+      color: #6a737d;
+      margin: 1rem 0;
+    }
+    .message-text table {
+      border-collapse: collapse;
+      width: 100%;
+      margin: 1rem 0;
+    }
+    .message-text table th, .message-text table td {
+      border: 1px solid #dfe2e5;
+      padding: 0.5rem 0.75rem;
+    }
+    .message-text table tr:nth-child(2n) { background-color: #f6f8fa; }
 
     /* Input Bar (Fixed at bottom) */
     .input-container-wrapper {
@@ -403,10 +427,15 @@
           alert('请先点击右上角⚙️设置 API Key 和 API URL');
           return;
         }
+
         const userMessage = { id: Date.now(), text: input, sender: 'user' };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
         setIsLoading(true);
+
+        const assistantMessageId = Date.now() + 1;
+        setMessages(prev => [...prev, { id: assistantMessageId, text: '', sender: 'assistant' }]);
+
         try {
           const response = await fetch(apiUrl, {
             method: 'POST',
@@ -416,18 +445,58 @@
               messages: [...messages, userMessage].map(m => ({
                 role: m.sender === 'user' ? 'user' : 'assistant',
                 content: m.text
-              }))
+              })),
+              stream: true
             })
           });
+
           if (!response.ok) throw new Error('请求失败');
-          const data = await response.json();
-          setMessages(prev => [...prev, {
-            id: Date.now() + 1,
-            text: data.choices[0]?.message?.content || '抱歉，无法获取回复',
-            sender: 'assistant'
-          }]);
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let assistantText = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value);
+            const lines = chunk.split('\n');
+            
+            for (const line of lines) {
+              if (line.trim().startsWith('data: ')) {
+                const dataStr = line.trim().slice(6);
+                if (dataStr === '[DONE]') break;
+                
+                try {
+                  const data = JSON.parse(dataStr);
+                  const content = data.choices[0]?.delta?.content || '';
+                  if (content) {
+                    assistantText += content;
+                    setMessages(prev => {
+                      const updated = [...prev];
+                      const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
+                      if (msgIdx !== -1) {
+                        updated[msgIdx] = { ...updated[msgIdx], text: assistantText };
+                      }
+                      return updated;
+                    });
+                  }
+                } catch (e) {
+                  // 忽略部分解析失败的 JSON 片段
+                }
+              }
+            }
+          }
         } catch (err) {
-          setMessages(prev => [...prev, { id: Date.now() + 1, text: '请求失败，请检查 API 设置', sender: 'assistant' }]);
+          setMessages(prev => {
+            const updated = [...prev];
+            const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
+            if (msgIdx !== -1) {
+              updated[msgIdx] = { ...updated[msgIdx], text: '抱歉，请求出错，请检查网络或 API 设置。' };
+            }
+            return updated;
+          });
         } finally {
           setIsLoading(false);
         }
@@ -532,7 +601,14 @@
               {messages.map(msg => (
                 <div key={msg.id} className={`message ${msg.sender}`}>
                   <div className="message-content">
-                    <div className="message-text">{msg.text}</div>
+                    <div 
+                      className="message-text" 
+                      dangerouslySetInnerHTML={{ 
+                        __html: msg.sender === 'assistant' 
+                          ? marked.parse(msg.text, { breaks: true }) 
+                          : msg.text 
+                      }} 
+                    />
                   </div>
                 </div>
               ))}
