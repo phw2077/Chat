@@ -11,6 +11,9 @@
   <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.0/dist/contrib/auto-render.min.js"></script>
   <style>
     :root {
       --font-main: "Google Sans", "Helvetica Neue", sans-serif;
@@ -270,6 +273,10 @@
       padding: 0.5rem 0.75rem;
     }
     .message-text table tr:nth-child(2n) { background-color: #f6f8fa; }
+    
+    /* KaTeX Adjustments */
+    .katex-display { margin: 0.5rem 0; overflow-x: auto; overflow-y: hidden; }
+    .katex { font-size: 1.1em; }
 
     /* Input Bar (Fixed at bottom) */
     .input-container-wrapper {
@@ -413,6 +420,21 @@
       React.useEffect(() => {
         if(currentSessionId) localStorage.setItem('ai_current_session_id', currentSessionId);
       }, [currentSessionId]);
+
+      React.useEffect(() => {
+        const chatContainer = document.querySelector('.messages');
+        if (chatContainer) {
+          renderMathInElement(chatContainer, {
+            delimiters: [
+              { left: '$$', right: '$$', display: true },
+              { left: '$', right: '$', display: false },
+              { left: '\\(', right: '\\)', display: false },
+              { left: '\\[', right: '\\]', display: true }
+            ],
+            throwOnError: false
+          });
+        }
+      }, [messages, isLoading]);
 
       React.useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
