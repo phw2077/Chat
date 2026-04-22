@@ -191,20 +191,39 @@ export const useChat = () => {
           currentHistory.push(aiMessage);
 
           for (const tc of toolCalls) {
-            const args = JSON.parse(tc.function.arguments || '{}');
-            const result = await executeTool(tc.function.name, args);
+            // 为了让用户看到过程，先临时更新 UI
+            let loadingText = tc.function.name === 'pm_review_panel' 
+              ? '\n[系统: 正在召唤评审团专家（CTO, CPO, CFO），请稍候（约需10-20秒）...]\n' 
+              : `\n[系统: 正在使用 ${tc.function.name} 计算...]\n`;
             
-            const toolResult = { sender: 'tool', text: String(result), tool_call_id: tc.id };
-            currentHistory.push(toolResult);
-            
-            // 为了让用户看到过程，可以临时更新 UI
-            fullAssistantText += `\n[系统: 正在使用 ${tc.function.name} 计算...]\n`;
+            fullAssistantText += loadingText;
             setMessages(prev => {
               const updated = [...prev];
               const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
               if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: fullAssistantText };
               return updated;
             });
+
+            const onUpdate = (partialText) => {
+              setMessages(prev => {
+                const updated = [...prev];
+                const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
+                if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: fullAssistantText + "\n\n" + partialText };
+                return updated;
+              });
+            };
+
+            const args = JSON.parse(tc.function.arguments || '{}');
+            const result = await executeTool(tc.function.name, args, { apiKey, apiUrl, model: DEFAULT_MODEL, onUpdate });
+            
+            let toolTextForLLM = String(result);
+            if (tc.function.name === 'pm_review_panel') {
+                fullAssistantText += "\n\n" + String(result) + "\n\n---\n*专家评审完毕，主助手正在总结...*\n";
+                toolTextForLLM = "各专家的详细评审意见已直接展示在屏幕上给用户看过了。请你只看以上信息，用 50 个字以内的简短话语给出一个你的最终总结或建议，绝对不要重复专家的长篇大论。";
+            }
+            
+            const toolResult = { sender: 'tool', text: toolTextForLLM, tool_call_id: tc.id };
+            currentHistory.push(toolResult);
           }
         }
       }
