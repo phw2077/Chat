@@ -1,5 +1,5 @@
 import React from 'react';
-import { MenuIcon, TrashIcon, GearIcon } from './Icons';
+import { MenuIcon, TrashIcon, GearIcon, PluginIcon } from './Icons';
 
 export const Header = ({ 
   sidebarOpen, 
@@ -9,7 +9,9 @@ export const Header = ({
   setMessages, 
   setCurrentSessionId, 
   showSettings, 
-  setShowSettings 
+  setShowSettings,
+  showSkillManager,
+  setShowSkillManager
 }) => {
   return (
     <header className="header">
@@ -30,8 +32,8 @@ export const Header = ({
             <TrashIcon />
           </button>
         )}
-        <button className="settings-btn" onClick={() => setShowSettings(!showSettings)} title="API 设置">
-          <GearIcon />
+        <button className="settings-btn" onClick={() => setShowSkillManager(!showSkillManager)} title="技能中心">
+          <PluginIcon />
         </button>
       </div>
     </header>

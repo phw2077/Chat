@@ -4,6 +4,7 @@ import { useChat } from './hooks/useChat';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { Settings } from './components/Settings';
+import { SkillManager } from './components/SkillManager';
 import { ChatContainer } from './components/ChatContainer';
 
 function App() {
@@ -38,7 +39,17 @@ function App() {
           setCurrentSessionId={chat.setCurrentSessionId}
           showSettings={chat.showSettings}
           setShowSettings={chat.setShowSettings}
+          showSkillManager={chat.showSkillManager}
+          setShowSkillManager={chat.setShowSkillManager}
         />
+
+        {chat.showSkillManager && (
+          <SkillManager
+            activeSkills={chat.activeSkills}
+            setActiveSkills={chat.setActiveSkills}
+            setShowSkillManager={chat.setShowSkillManager}
+          />
+        )}
 
         {chat.showSettings && (
           <Settings 

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import renderMathInElement from 'katex/dist/contrib/auto-render.min';
+import { getToolsDefinitions, executeTool, toolsList } from '../tools';
 
 const DEFAULT_API_KEY = 'sk-1016ea9c540446a094868468f93d7047';
 const DEFAULT_API_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
@@ -31,6 +32,12 @@ export const useChat = () => {
   const [apiKey, setApiKey] = useState(() => localStorage.getItem('ai_chat_api_key') || DEFAULT_API_KEY);
   const [apiUrl, setApiUrl] = useState(() => localStorage.getItem('ai_chat_api_url') || DEFAULT_API_URL);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSkillManager, setShowSkillManager] = useState(false);
+  const [activeSkills, setActiveSkills] = useState(() => {
+    const saved = localStorage.getItem('ai_chat_active_skills');
+    if (saved) return JSON.parse(saved);
+    return toolsList.map(t => t.name); // 默认全部开启
+  });
   const messagesEndRef = useRef(null);
 
   const currentSession = sessions.find(s => s.id === currentSessionId);
@@ -41,6 +48,7 @@ export const useChat = () => {
   useEffect(() => { if (currentSessionId) localStorage.setItem('ai_current_session_id', currentSessionId); }, [currentSessionId]);
   useEffect(() => { localStorage.setItem('ai_chat_api_key', apiKey); }, [apiKey]);
   useEffect(() => { localStorage.setItem('ai_chat_api_url', apiUrl); }, [apiUrl]);
+  useEffect(() => { localStorage.setItem('ai_chat_active_skills', JSON.stringify(activeSkills)); }, [activeSkills]);
 
   // 工具逻辑
   const setMessages = (updater) => {
@@ -107,43 +115,96 @@ export const useChat = () => {
     setMessages(prev => [...prev, { id: assistantMessageId, text: '', sender: 'assistant' }]);
 
     try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-        body: JSON.stringify({
+      let currentHistory = [...messages, userMessage];
+      let toolCallsFound = true;
+      let fullAssistantText = '';
+
+      while (toolCallsFound) {
+        toolCallsFound = false;
+        const activeToolsDefs = getToolsDefinitions(activeSkills);
+        const requestBody = {
           model: DEFAULT_MODEL,
-          messages: [...messages, userMessage].map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text })),
-          stream: true
-        })
-      });
+          messages: currentHistory.map(m => ({
+            role: m.sender === 'user' ? 'user' : (m.sender === 'tool' ? 'tool' : 'assistant'),
+            content: m.text,
+            ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
+            ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {})
+          })),
+          stream: true,
+          ...(activeToolsDefs.length > 0 ? { tools: activeToolsDefs, tool_choice: "auto" } : {})
+        };
 
-      if (!response.ok) throw new Error('请求失败');
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let assistantText = '';
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify(requestBody)
+        });
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-        for (const line of lines) {
-          if (line.trim().startsWith('data: ')) {
-            const dataStr = line.trim().slice(6);
-            if (dataStr === '[DONE]') break;
-            try {
-              const data = JSON.parse(dataStr);
-              const content = data.choices[0]?.delta?.content || '';
-              if (content) {
-                assistantText += content;
-                setMessages(prev => {
-                  const updated = [...prev];
-                  const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
-                  if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: assistantText };
-                  return updated;
-                });
-              }
-            } catch (e) {}
+        if (!response.ok) throw new Error('请求失败');
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let chunkText = '';
+        let toolCalls = [];
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n');
+          for (const line of lines) {
+            if (line.trim().startsWith('data: ')) {
+              const dataStr = line.trim().slice(6);
+              if (dataStr === '[DONE]') break;
+              try {
+                const data = JSON.parse(dataStr);
+                const delta = data.choices[0]?.delta;
+
+                if (delta?.content) {
+                  chunkText += delta.content;
+                  fullAssistantText += delta.content;
+                  setMessages(prev => {
+                    const updated = [...prev];
+                    const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
+                    if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: fullAssistantText };
+                    return updated;
+                  });
+                }
+
+                if (delta?.tool_calls) {
+                  toolCallsFound = true;
+                  delta.tool_calls.forEach(tc => {
+                    const idx = tc.index || 0;
+                    if (!toolCalls[idx]) toolCalls[idx] = { id: tc.id, function: { name: '', arguments: '' } };
+                    if (tc.id) toolCalls[idx].id = tc.id;
+                    if (tc.function?.name) toolCalls[idx].function.name += tc.function.name;
+                    if (tc.function?.arguments) toolCalls[idx].function.arguments += tc.function.arguments;
+                  });
+                }
+              } catch (e) {}
+            }
+          }
+        }
+
+        if (toolCallsFound) {
+          // 记录 AI 的工具调用意图
+          const aiMessage = { sender: 'assistant', text: chunkText, tool_calls: toolCalls };
+          currentHistory.push(aiMessage);
+
+          for (const tc of toolCalls) {
+            const args = JSON.parse(tc.function.arguments || '{}');
+            const result = await executeTool(tc.function.name, args);
+            
+            const toolResult = { sender: 'tool', text: String(result), tool_call_id: tc.id };
+            currentHistory.push(toolResult);
+            
+            // 为了让用户看到过程，可以临时更新 UI
+            fullAssistantText += `\n[系统: 正在使用 ${tc.function.name} 计算...]\n`;
+            setMessages(prev => {
+              const updated = [...prev];
+              const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
+              if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: fullAssistantText };
+              return updated;
+            });
           }
         }
       }
@@ -151,7 +212,7 @@ export const useChat = () => {
       setMessages(prev => {
         const updated = [...prev];
         const msgIdx = updated.findIndex(m => m.id === assistantMessageId);
-        if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: '抱歉，请求出错，请检查配置。' };
+        if (msgIdx !== -1) updated[msgIdx] = { ...updated[msgIdx], text: `抱歉，出现错误: ${err.message}` };
         return updated;
       });
     } finally {
@@ -162,6 +223,7 @@ export const useChat = () => {
   return {
     sessions, currentSessionId, setCurrentSessionId, sessions, messages, input, setInput, isLoading,
     apiKey, setApiKey, apiUrl, setApiUrl, sidebarOpen, setSidebarOpen, showSettings, setShowSettings,
+    showSkillManager, setShowSkillManager, activeSkills, setActiveSkills,
     messagesEndRef, handleNewChat, deleteSession, handleSend, setMessages, renderMath
   };
 };
